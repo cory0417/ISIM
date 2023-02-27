@@ -1,0 +1,192 @@
+---
+title: 'Lab 3: Strain Gauge Scale'
+author: "Daeyoung Kim"
+date: "2/17/2023"
+output:
+  github_document:
+    toc: true
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Libraries
+library(tidyverse)
+library(googlesheets4)
+library(lintr)
+library(googledrive)
+library(ggpubr)
+library(ggpmisc)
+library(latex2exp)
+
+url <- "https://docs.google.com/spreadsheets/d/1jFFOzw00Mqv9hkT1eSfMOVGm4FsYe1Dk-1FHNW_bQIQ/edit?usp=sharing"
+drive_auth(path = "../service_account_credentials.json")
+```
+
+```{r read-sheet, include=FALSE}
+gs4_deauth()
+ss <- gs4_get(url)
+df_strain_gauge <-
+  read_sheet(ss, sheet = 1) %>%
+  select(Mass, Voltage)
+df_strain_gauge %>% glimpse
+df_prediction <-
+  read_sheet(ss, sheet = 2)
+df_prediction %>% glimpse
+```
+## Calibration Plot
+```{r Calibration Plot}
+df_strain_gauge %>% 
+  ggplot(aes(x = Mass, y = Voltage)) + 
+  geom_point(aes(color = "Calibration Measurements")) +
+  stat_poly_line(
+    formula = (predict_voltage.formula <- y ~ x),
+    se = FALSE, 
+    linewidth = 0.5
+    ) +
+  stat_poly_eq(
+    formula = predict_voltage.formula,
+    use_label("eq"), 
+    coef.digits = 4, 
+    size = 5,
+    label.x = "right",
+    label.y = "bottom"
+    ) +
+  labs(
+    x = 'Mass (g)',
+    y = 'Voltage (mV)',
+    title = "Voltage vs Mass", 
+    caption = str_wrap("The plot shows the relationship between the measured voltage and the amount of mass that hung on the strain gauge. The theoretical points were calculated based on the slope of the calibration measurements. The actual points show the actual voltage measurements with the respective amount of mass.", 80)
+  ) + 
+ theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5),
+    legend.title = element_blank()
+    ) +
+  coord_cartesian(xlim =c(0, 300), ylim = c(0, 500)) +
+  geom_point(
+    data = df_prediction,
+    mapping = aes(x = Mass, y = Voltage, color = 'Actual')
+  ) +
+  geom_point(
+    data = df_prediction,
+    mapping = aes(x = Mass, y = Theoretical_Voltage, color = 'Theoretical')
+  ) + 
+  scale_color_manual(
+    values = c(
+      'Actual' = "red",
+      'Theoretical' = "green",
+      "Calibration Measurements" = "black"
+        )
+    )
+```
+
+## Calculating the Percent Error
+Using the difference between the actual and the theoretical voltage measurements, the percent errors were calculated, then averaged. 
+```{r Percent Error}
+df_prediction %>% 
+  mutate(Difference = Voltage - Theoretical_Voltage) %>% 
+  mutate(Percent_Error = Difference / Voltage) %>% 
+  summarize(mean(Percent_Error)) -> mean_percent_error
+```
+The average percent error of the scale was `r round(mean_percent_error * 100, digits = 2)`%.
+
+## Associated Change in Electrical Resistance
+To find the relationship between the measured voltage and the resistance of the strain gauge, voltage divider rule is applied to each leg of the Wheatstone Bridge of the circuit. 
+\begin{equation}
+  V_- = V_{in}\frac{R}{2R} \\
+  V_- = 2.5V \\
+  V_+ = V_{in}\frac{R_2}{R_2+R_s} \\
+  V_+ = 5V\frac{115\Omega}{115\Omega+R_s} \\
+\end{equation}
+
+Applying the given formula for the measured voltage using the amplifier,
+\begin{equation}
+  \Delta V_{out} = (V_{ref} + G(V_{+2} - V_{-2})) - (V_{ref} + G(V_{+1} - V_{-1})) \\
+  \Delta V_{out} = G((V_{+2} - V_{+1}) - (V_{-2} - V_{-1})) \\
+\end{equation}
+
+Since the voltage from the fixed resistance leg of the Wheatstone Bridge remain constant at 2.5V,
+\begin{equation}
+  \Delta V_{out} = G(V_{+2} - V_{+1}) \\
+\end{equation}
+
+Now, using the given formula for the value of `G`,
+\begin{equation}
+  G = 1 + \frac{100000\Omega}{R_G} \\
+  G = 1 + \frac{100000\Omega}{200\Omega} = 501 \\
+  \Delta V_{out} = 501(V_{+2} - V_{+1}) \\
+\end{equation}
+
+For a 20mV change in the voltage measured from the OScope, 
+\begin{equation}
+  0.02V = 501(V_{+2} - V_{+1}) \\
+  \frac{0.02V}{5V*501} = \frac{115\Omega}{115\Omega+R_{s2}} -\frac{115\Omega}{115\Omega+R_{s1}} \\
+\end{equation}
+
+The relationship between the initial and the final resistance of the strain gauge for a 20mV change is hyperbolic at a large range.  
+```{r}
+df_resistance <- 
+  tibble(R_s_1 = seq(from = 1, to = 10**8, length.out = 100)) %>% 
+  mutate(R_s_2 = (115*(125249*R_s_1 - 115))/(R_s_1 + 14403865)) 
+
+df_resistance%>% 
+  ggplot() +
+  geom_line(mapping = aes(R_s_1, R_s_2)) +
+  labs(title = "Initial Resistance vs Final Resistance\n for 20mV Change in Voltage Measured",
+       caption = str_wrap("The plot shows the relationship between the initial resistance of the strain gauage and the final resistance of the strain gauge to produce a 20mV voltage difference in the measurement.", 120),
+       y = TeX("Final Resistance ($\\Omega$)"), 
+       x = TeX("Initial Resistance ($\\Omega$)")
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5)
+    )
+```
+
+However, for the scope of our experiment and the strain guage used, which was rated to be between 118$\Omega$ and 122$\Omega$, the relationship is almost linear and the difference is very minute. 
+``` {r}
+df_resistance_relevant <- 
+  tibble(R_s_1 = seq(from = 118, to = 122, length.out = 100)) %>% 
+  mutate(R_s_2 = (115*(125249*R_s_1 - 115))/(R_s_1 + 14403865)) 
+
+df_resistance_relevant %>% 
+  ggplot(aes(R_s_1, R_s_2)) +
+  geom_line() +
+  labs(
+    title = "Initial Resistance vs Final Resistance\n for 20mV Change in Voltage Measured",
+    caption = str_wrap("The plot is enlarged version of the previous figure with a range of resistance values that is relevant to the strain guage used in the experiment.",
+                       120),
+    y = TeX("Final Resistance ($\\Omega$)"),
+    x = TeX("Initial Resistance ($\\Omega$)"),
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5)
+    )
+```
+
+```{r}
+resistance <- function(x, y){
+  return((115*(125249*x - 115))/(x + 14403865))
+}
+R_122 <- (122 - resistance(122))
+R_120 <- (120 - resistance(120))
+R_118 <- (118 - resistance(118))
+```
+The associated change in electrical resistance of the strain gauge for 20mV change in measured voltage is then `r round(R_122*1000, digits = 2)`$m\Omega$, `r round(R_120*1000, digits = 2)`$m\Omega$, `r round(R_118*1000, digits = 2)`$m\Omega$ for initial resistance of 122$\Omega$, 120$\Omega$, and 118$\Omega$, respectively.
+
+
+## Calculating the Required Change in Mass
+To calculate the change in mass required to get a 20 mV change in voltage measured, the slope of the calibration plot (Voltage vs Mass) was used: 
+\begin{equation}
+V = 29.96 + 1.446m \\
+\frac{dV}{dm} = 1.446
+\end{equation}
+So, using the inverse of calculated sensitivity of $1.446\frac{mV}{g}$, which was $0.6916\frac{g}{mV}$,
+
+```{r}
+dmdV <- (1/1.446)
+mass_required <- dmdV*20
+```
+
+
+The required change in mass is `r round(mass_required, digits = 2)`g for 20mV change in measured voltage.
