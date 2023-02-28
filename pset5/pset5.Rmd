@@ -1,0 +1,138 @@
+---
+title: "pset5"
+author: "Daeyoung Kim"
+date: "2023-02-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+```{r}
+library(tidyverse)
+library(pracma)
+```
+
+## Initial Setup for the RC filters in Series
+```{r}
+# Compute the theoretical amplitude for RC filters in series
+# Create log-spaced vector for f from 10^1 to 10^5 Hz.
+f <- logspace(1, 5)
+
+# Convert input frequency in Hz (cycles/second) to radians/second
+w <- 2 * pi * f
+
+# For our circuits, the in series, we use RC=1.53E-3
+RC <- 1.53e-3
+
+# Compute the amplitude for RC filters in series
+A_RC = 1/(1 + (RC * w)^2)
+
+# Compute the amplitude for CR filters in series
+A_CR = (RC * w)^2/(1 + (RC * w)^2)
+
+# Compute the amplitude for RC-RC-CR-CR filters in series
+A_RCCR = A_RC * A_CR
+```
+
+## Processing data
+```{r}
+# Read raw data
+file_circuit1 <- "raw_data/circuit1.csv"
+df_circuit1 <- read.csv(file_circuit1)
+
+df_circuit1 <- 
+  df_circuit1 %>% 
+  mutate(amp = 10^(gain/20)) %>% # Convert gain (dB) to Amplitude (V_in/V_out)
+  mutate(circuit = "Circuit 1")
+
+file_circuit2 <- "raw_data/circuit2.csv"
+df_circuit2 <- read.csv(file_circuit2)
+
+df_circuit2 <- 
+  df_circuit2 %>% 
+  mutate(amp = 10^(gain/20)) %>% 
+  mutate(circuit = "Circuit 2")
+
+file_circuit3 <- "raw_data/circuit3.csv"
+df_circuit3 <- read.csv(file_circuit3)
+
+df_circuit3 <- 
+  df_circuit3 %>% 
+  mutate(amp = 10^(gain/20)) %>%
+  mutate(circuit = "Circuit 3")
+
+
+df_combined <- bind_rows(df_circuit1, df_circuit2, df_circuit3)
+
+file_circuit4 <- "raw_data/circuit4.csv"
+df_circuit4 <- read.csv(file_circuit4)
+
+df_circuit4 <- 
+  df_circuit4 %>% 
+  mutate(amp = 10^(gain/20)) %>%
+  mutate(circuit = "Circuit 4")
+  
+file_circuit5 <- "raw_data/circuit5.csv"
+df_circuit5 <- read.csv(file_circuit5)
+
+df_circuit5 <- 
+  df_circuit5 %>% 
+  mutate(amp = 10^(gain/20)) %>%
+  mutate(circuit = "Circuit 5")
+
+  
+
+```
+
+## Plotting the experimental and the theoretical
+```{r}
+ggplot() +
+  geom_point(df_combined, mapping = aes(log(freq), log(amp), color = circuit)) +
+  geom_point(aes(log(f), log(A_RC), color = "Theory")) + 
+  labs(
+    title = "LowPass Filters in Series-Circuit 1 to 3",
+    x = "Freqency (cycles/second)",
+    y = "Amplitude(Vout/Vin)"
+  ) +
+  scale_color_manual(values = c(
+    "Theory" = 'gray',
+    "Circuit 1" = 'red',
+    "Circuit 2" = 'blue',
+    "Circuit 3" = 'green'
+      )
+    )
+  
+ggplot() +
+  geom_point(df_circuit4, mapping = aes(log(freq), log(amp), color = circuit)) +
+  geom_point(aes(log(f), log(A_CR), color = "Theory")) + 
+  labs(
+    title = "HighPass Filters in Series-Circuit4",
+    x = "Freqency (cycles/second)",
+    y = "Amplitude(Vout/Vin)"
+  ) +
+  scale_color_manual(values = c(
+    "Theory" = 'gray',
+    "Circuit 4" = 'red'
+      )
+    )
+
+ggplot() +
+  geom_point(df_circuit5, mapping = aes(log(freq), log(amp), color = circuit)) +
+  geom_point(aes(log(f), log(A_RCCR), color = "Theory")) + 
+  labs(
+    title = "BandPass Filters in Series-Circuit5",
+    x = "Freqency (cycles/second)",
+    y = "Amplitude(Vout/Vin)"
+  ) +
+  scale_color_manual(values = c(
+    "Theory" = 'gray',
+    "Circuit 5" = 'red'
+      )
+    )
+
+```
+
+
