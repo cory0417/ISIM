@@ -24,15 +24,15 @@ with a second order low pass filter with a cutoff frequency of 16 Hz.
 
 #### Circuit Schematic
 
-<img src="./images/circuit_schematic.jpg" width="50%" style="display: block;margin-left: auto; margin-right: auto" />
+<img src="./images/circuit_schematic.JPG" width="50%" style="display: block;margin-left: auto; margin-right: auto" />
 
 #### Circuit on Breadboard
 
-<img src="./images/circuit.jpg" width="50%" style="transform:rotate(90deg); display: block;margin-left: auto; margin-right: auto" />
+<img src="./images/circuit.JPG" width="50%" style="transform:rotate(90deg); display: block;margin-left: auto; margin-right: auto" />
 
 #### Circuit with Weighing Scale
 
-<img src="./images/circuit_scale.jpg" width="50%" style="transform:rotate(270deg); display: block;margin-left: auto; margin-right: auto" />
+<img src="./images/circuit_scale.JPG" width="50%" style="transform:rotate(270deg); display: block;margin-left: auto; margin-right: auto" />
 
 ``` r
 df_bandpass <- read_csv("data/bode_bandpass.csv")
@@ -106,4 +106,4 @@ df_bcg %>%
   )
 ```
 
-![](lab8_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](lab8_files/figure-gfm/BCG-1.png)<!-- -->

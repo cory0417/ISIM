@@ -20,20 +20,20 @@ To measure heartbeat from the slight recoil of the weighing scale with a person 
 #### Circuit Schematic
 
 ```{r Circuit Schematic, out.width="50%", out.extra='style="display: block;margin-left: auto; margin-right: auto"', echo=FALSE}
-knitr::include_graphics("./images/circuit_schematic.jpg")
+knitr::include_graphics("./images/circuit_schematic.JPG")
 ```
 
 #### Circuit on Breadboard
 
 ```{r Circuit, echo=FALSE, out.width="50%", out.extra='style="transform:rotate(90deg); display: block;margin-left: auto; margin-right: auto"'}
-knitr::include_graphics("./images/circuit.jpg")
+knitr::include_graphics("./images/circuit.JPG")
 
 ```
 
 #### Circuit with Weighing Scale
 
 ```{r Circuit with Scale, echo=FALSE, out.width="50%", out.extra='style="transform:rotate(270deg); display: block;margin-left: auto; margin-right: auto"'}
-knitr::include_graphics("./images/circuit_scale.jpg")
+knitr::include_graphics("./images/circuit_scale.JPG")
 ```
 
 
@@ -82,7 +82,7 @@ df_lowpass %>%
 
 ### BCG Trace
 
-```{r}
+```{r BCG}
 df_bcg %>% 
   select(t1, ch1) %>% 
   mutate(
